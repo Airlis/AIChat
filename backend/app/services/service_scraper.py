@@ -1,50 +1,83 @@
-from app.utils.scraper import scrape_content
-from app.utils.ai_client import analyze_content, generate_questions
-from app.caching.cache_redis import get_cached_questions, cache_questions
-from app.database.db_dynamodb import get_cached_content, cache_content
+from typing import Dict, Optional
+import logging
+from datetime import datetime, timedelta
+from app.utils.scraper import WebScraper
+from app.utils.ai_client import AIClient
+from app.database.db_dynamodb import DynamoDB
+from app.caching.cache_redis import RedisCache
+
+logger = logging.getLogger(__name__)
 
 class ScraperService:
-    @staticmethod
-    def get_questions(url):
-        # Check Redis cache for questions
-        questions = get_cached_questions(url)
-        if questions:
-            return questions
+    def __init__(self):
+        self.scraper = WebScraper()
+        self.ai_client = AIClient()
+        self.dynamodb = DynamoDB()
+        self.redis_cache = RedisCache()
+        self.content_update_threshold = timedelta(days=2)  # Content refresh after 2 days
 
-        # Check DynamoDB for cached content
-        content, last_modified, etag = get_cached_content(url)
-        if not content or not ScraperService.is_content_up_to_date(url, last_modified, etag):
-            # Scrape content and cache it
-            content, last_modified, etag = scrape_content(url)
-            if not content:
-                print("Failed to scrape content.")
-                return None
-            cache_content(url, content, last_modified, etag)
+    def process_url(self, url: str) -> Optional[Dict]:
+        """Process URL: scrape, analyze, and cache content"""
+        try:
+            # Normalize URL
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url
 
-        # Analyze content and generate questions
-        topics = analyze_content(content)
-        if topics:
-            questions = generate_questions(topics)
-            if questions:
-                # Cache questions in Redis
-                cache_questions(url, questions)
-            else:
-                print("No questions generated from topics.")
-                return None
-        else:
-            print("No topics generated from content.")
+            try:
+                # Check Redis cache first
+                cached_content = self.redis_cache.get_content_analysis(url)
+                if cached_content:
+                    logger.info(f"Using cached content for {url}")
+                    return cached_content
+
+                # Check DynamoDB
+                dynamo_content = self.dynamodb.get_content_analysis(url)
+                if dynamo_content:
+                    logger.info(f"Using DynamoDB content for {url}")
+                    self.redis_cache.set_content_analysis(url, dynamo_content)
+                    return dynamo_content
+            except Exception as e:
+                logger.warning(f"Cache retrieval error for {url}: {e}")
+                # Continue with scraping if cache fails
+
+            # Scrape and analyze new content
+            content_data = self.scraper.scrape_content(url)
+            if not content_data or not content_data.get('sections'):
+                raise ValueError("No content scraped from URL")
+
+            # Extract text for analysis
+            text_content = "\n\n".join(
+                section['text'] for section in content_data['sections']
+                if section.get('text')
+            )
+
+            if not text_content:
+                raise ValueError("No text content extracted from URL")
+
+            # Analyze content
+            content_analysis = self.ai_client.analyze_content(text_content)
+            if not content_analysis:
+                raise ValueError("Content analysis failed")
+
+            result = {
+                'content': content_data,
+                'analysis': content_analysis
+            }
+
+            # Try to cache the result
+            try:
+                self.redis_cache.set_content_analysis(url, result)
+                self.dynamodb.save_content_analysis(
+                    url=url,
+                    content=content_data,
+                    analysis=content_analysis
+                )
+            except Exception as e:
+                logger.warning(f"Cache storage error for {url}: {e}")
+                # Continue even if caching fails
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error processing URL {url}: {e}")
             return None
-
-        return questions
-
-    @staticmethod
-    def is_content_up_to_date(url, last_modified, etag):
-        import requests
-        headers = {}
-        if last_modified:
-            headers['If-Modified-Since'] = last_modified
-        if etag:
-            headers['If-None-Match'] = etag
-
-        response = requests.head(url, headers=headers)
-        return response.status_code == 304

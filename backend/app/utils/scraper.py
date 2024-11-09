@@ -1,26 +1,63 @@
 import requests
 from bs4 import BeautifulSoup
+from typing import Dict
+import logging
 
-def scrape_content(url):
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
+logger = logging.getLogger(__name__)
 
-        # Extract text from HTML
-        content = extract_text(response.text)
+class WebScraper:
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (compatible; VisitorClassifier/1.0)'
+        }
 
-        # Get 'Last-Modified' and 'ETag' headers
-        last_modified = response.headers.get('Last-Modified')
-        etag = response.headers.get('ETag')
+    def scrape_content(self, url: str) -> Dict:
+        """Scrape website content and structure it"""
+        try:
+            # Add http:// if not present
+            if not url.startswith(('http://', 'https://')):
+                url = 'https://' + url
+            
+            logger.info(f"Scraping URL: {url}")
+            
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response encoding: {response.encoding}")
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Remove script and style elements
+            for element in soup(['script', 'style', 'nav', 'footer']):
+                element.decompose()
+            
+            # Extract main content sections
+            sections = []
+            for section in soup.find_all(['article', 'section', 'div']):
+                text = section.get_text(strip=True)
+                if len(text) > 100:  # Only keep substantial sections
+                    sections.append({
+                        'text': text,
+                        'html': str(section)
+                    })
+            
+            logger.info(f"Found {len(sections)} content sections")
+            if not sections:
+                logger.warning("No content sections found")
+            
+            result = {
+                'url': url,
+                'title': soup.title.string if soup.title else '',
+                'sections': sections
+            }
+            
+            logger.info(f"Scraping complete. Title: {result['title']}")
+            return result
 
-        return content, last_modified, etag
-    except Exception as e:
-        print(f"Error scraping content from {url}: {e}")
-        return None, None, None
-
-def extract_text(html):
-    soup = BeautifulSoup(html, 'html.parser')
-    for script_or_style in soup(['script', 'style']):
-        script_or_style.decompose()
-    text = ' '.join(soup.stripped_strings)
-    return text
+        except requests.RequestException as e:
+            logger.error(f"Request error for {url}: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Scraping error for {url}: {str(e)}")
+            raise
