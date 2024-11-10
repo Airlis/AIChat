@@ -15,6 +15,7 @@ class SessionService:
         self.cache = RedisCache()
         self.ai_client = AIClient()
         self.db = PostgreSQL()
+        self.min_questions = 3  # Minimum number of questions before classification
         self.max_questions = 5  # Maximum number of questions before classification
 
     def create_session(self, url: str, content_analysis: Dict) -> str:
@@ -72,7 +73,7 @@ class SessionService:
             })
             
             # Check if we have enough information for classification
-            if len(session_data['responses']) >= 2:  # At least 2 responses
+            if len(session_data['responses']) >= self.min_questions:  # At least 2 responses
                 # Ask AI if we should classify now
                 should_classify = self.ai_client.should_generate_classification(
                     content_analysis=session_data['content_analysis'],

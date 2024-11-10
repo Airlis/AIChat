@@ -1,31 +1,56 @@
 import React from 'react';
-import { Card, Button } from 'antd';
-import { useSelector, useDispatch } from 'react-redux';
-import { reset } from '../redux/slices/appSlice';
+import { useSelector } from 'react-redux';
+import { Card, List, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
+const { Title, Text } = Typography;
+
 const Results = () => {
-  const { results } = useSelector((state) => state.app);
-  const dispatch = useDispatch();
+  const { classification } = useSelector(state => state.app);
   const navigate = useNavigate();
 
-  const handleRestart = () => {
-    dispatch(reset());
-    navigate('/');
-  };
+  React.useEffect(() => {
+    if (!classification) {
+      navigate('/');
+    }
+  }, [classification, navigate]);
 
-  if (!results) {
-    return <p>No results available.</p>;
-  }
+  if (!classification) return null;
 
   return (
-    <Card style={{ maxWidth: 600, margin: '50px auto', textAlign: 'center' }}>
-      <h2>Your Classification</h2>
-      <p>{results}</p>
-      <Button type="primary" onClick={handleRestart}>
-        Start Over
-      </Button>
-    </Card>
+    <div className="results-container">
+      <Card title="Classification Results">
+        <div className="interests-section">
+          <Title level={4}>Interests</Title>
+          <div className="tags-container">
+            {classification.interests.map((interest, i) => (
+              <Tag key={i} color="blue">{interest}</Tag>
+            ))}
+          </div>
+        </div>
+
+        <div className="relevant-sections">
+          <Title level={4}>Relevant Content</Title>
+          <List
+            dataSource={classification.relevant_sections}
+            renderItem={(section) => (
+              <List.Item>
+                <Text>{section}</Text>
+              </List.Item>
+            )}
+          />
+        </div>
+
+        {classification.primary_interest && (
+          <div className="primary-interest">
+            <Title level={4}>Primary Interest</Title>
+            <Tag color="green" style={{ fontSize: '16px' }}>
+              {classification.primary_interest}
+            </Tag>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
 

@@ -1,47 +1,55 @@
-import React from 'react';
-import { Form, Input, Button, Card } from 'antd';
+import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Input, Button, Alert } from 'antd';
 import { submitUrl } from '../redux/slices/appSlice';
 
 const UrlInputForm = () => {
-  const [form] = Form.useForm();
+  const [url, setUrl] = useState('');
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.app);
+  const { loading, errors } = useSelector((state) => state.app);
 
-  const onFinish = (values) => {
-    dispatch(submitUrl(values.url))
-      .unwrap()
-      .then(() => {
-        navigate('/chat');
-      })
-      .catch((err) => {
-        console.error('Failed to submit URL:', err);
-      });
+  const handleSubmit = async () => {
+    if (!url) return;
+
+    try {
+      // Add http:// if not present
+      const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+      await dispatch(submitUrl(formattedUrl)).unwrap();
+    } catch (error) {
+      // Error is handled by Redux
+      console.error('Error submitting URL:', error);
+    }
   };
 
   return (
-    <Card style={{ maxWidth: 600, margin: '50px auto' }}>
-      <Form form={form} onFinish={onFinish} layout="vertical">
-        <Form.Item
-          name="url"
-          label="Website URL"
-          rules={[
-            { required: true, message: 'Please enter a website URL' },
-            { type: 'url', message: 'Please enter a valid URL' },
-          ]}
+    <div className="url-input-container">
+      {errors.url && (
+        <Alert
+          message="Error"
+          description={errors.url}
+          type="error"
+          showIcon
+          closable
+          className="error-alert"
+        />
+      )}
+      <div className="input-group">
+        <Input
+          placeholder="Enter website URL (e.g., www.example.com)"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onPressEnter={handleSubmit}
+          disabled={loading.url}
+        />
+        <Button
+          type="primary"
+          onClick={handleSubmit}
+          loading={loading.url}
         >
-          <Input placeholder="Enter website URL" />
-        </Form.Item>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading}>
-            Generate Questions
-          </Button>
-        </Form.Item>
-      </Form>
-    </Card>
+          Analyze
+        </Button>
+      </div>
+    </div>
   );
 };
 

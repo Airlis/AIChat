@@ -2,89 +2,134 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
+import { API_URL, API_ENDPOINTS } from '../../constants/config';
+import api from '../../services/api';
 
-// Async action to submit the URL and get questions
-export const submitUrl = createAsyncThunk('app/submitUrl', async (url, { dispatch }) => {
-  try {
-    const response = await axios.post('http://localhost:5000/api/scrape', { url });
-    const sessionId = response.headers['session-id'] || response.headers['Session-Id'];
-    dispatch(setSessionId(sessionId));
-    return response.data.questions;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
+// Async thunks
+export const submitUrl = createAsyncThunk(
+  'app/submitUrl', 
+  async (url, { rejectWithValue }) => {
+    try {
+      console.log('Submitting URL:', url);
+      const response = await api.post('/api/scrape', { 
+        url,
+      });
+      console.log('Response:', response);
+      
+      return {
+        sessionId: response.headers['session-id'] || response.headers['Session-Id'],
+        question: response.data.question
+      };
+    } catch (error) {
+      console.error('Submit URL Error:', error);
+      return rejectWithValue(error.message);
+    }
   }
-});
+);
 
-// Async action to submit answers and get results
-export const submitAnswers = createAsyncThunk('app/submitAnswers', async (answers, { getState }) => {
-  const state = getState();
-  const sessionId = state.app.sessionId;
-  try {
-    const response = await axios.post(
-      'http://localhost:5000/api/submit-answers',
-      { answers },
-      { headers: { 'Session-Id': sessionId } }
-    );
-    return response.data.results;
-  } catch (error) {
-    throw error.response ? error.response.data : error;
+export const submitAnswer = createAsyncThunk(
+  'app/submitAnswer', 
+  async (answer, { getState, rejectWithValue }) => {
+    try {
+      const state = getState();
+      const response = await axios.post(
+        `${API_URL}${API_ENDPOINTS.RESPOND}`,
+        { answer },
+        { headers: { 'Session-Id': state.app.sessionId } }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 
+        error.message || 
+        'Network error occurred'
+      );
+    }
   }
-});
+);
 
 const appSlice = createSlice({
   name: 'app',
   initialState: {
-    loading: false,
-    questions: [],
-    error: null,
-    results: null,
+    loading: {
+      url: false,
+      answer: false
+    },
+    errors: {
+      url: null,
+      answer: null
+    },
     sessionId: null,
+    messages: [],
+    currentQuestion: null,
+    classification: null
   },
   reducers: {
+    addMessage: (state, action) => {
+      state.messages.push({
+        ...action.payload,
+        timestamp: Date.now()
+      });
+    },
     reset: (state) => {
-      state.loading = false;
-      state.questions = [];
-      state.error = null;
-      state.results = null;
+      state.loading = { url: false, answer: false };
+      state.errors = { url: null, answer: null };
       state.sessionId = null;
-    },
-    setSessionId: (state, action) => {
-      state.sessionId = action.payload;
-    },
+      state.messages = [];
+      state.currentQuestion = null;
+      state.classification = null;
+    }
   },
   extraReducers: (builder) => {
     builder
-      // Handle submitUrl actions
       .addCase(submitUrl.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.questions = [];
-        state.results = null;
+        state.loading.url = true;
+        state.errors.url = null;
       })
       .addCase(submitUrl.fulfilled, (state, action) => {
-        state.loading = false;
-        state.questions = action.payload;
+        state.loading.url = false;
+        state.sessionId = action.payload.sessionId;
+        state.currentQuestion = action.payload.question;
+        state.messages.push({
+          type: 'question',
+          content: action.payload.question.question,
+          options: action.payload.question.options,
+          timestamp: Date.now()
+        });
       })
       .addCase(submitUrl.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to fetch questions.';
+        state.loading.url = false;
+        state.errors.url = action.error.message;
       })
-      // Handle submitAnswers actions
-      .addCase(submitAnswers.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(submitAnswer.pending, (state) => {
+        state.loading.answer = true;
+        state.errors.answer = null;
       })
-      .addCase(submitAnswers.fulfilled, (state, action) => {
-        state.loading = false;
-        state.results = action.payload;
+      .addCase(submitAnswer.fulfilled, (state, action) => {
+        state.loading.answer = false;
+        if (action.payload.classification) {
+          state.classification = action.payload.classification;
+          state.messages.push({
+            type: 'classification',
+            content: action.payload.classification,
+            timestamp: Date.now()
+          });
+        } else if (action.payload.question) {
+          state.currentQuestion = action.payload.question;
+          state.messages.push({
+            type: 'question',
+            content: action.payload.question.question,
+            options: action.payload.question.options,
+            timestamp: Date.now()
+          });
+        }
       })
-      .addCase(submitAnswers.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to submit answers.';
+      .addCase(submitAnswer.rejected, (state, action) => {
+        state.loading.answer = false;
+        state.errors.answer = action.error.message;
       });
-  },
+  }
 });
 
-export const { reset, setSessionId } = appSlice.actions;
-
+export const { addMessage, reset } = appSlice.actions;
 export default appSlice.reducer;

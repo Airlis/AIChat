@@ -1,89 +1,93 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { submitAnswers } from '../redux/slices/appSlice';
-import { useNavigate } from 'react-router-dom';
-import { ChatList } from 'react-chat-elements';
-import 'react-chat-elements/dist/main.css';
-import { v4 as uuidv4 } from 'uuid';
+import { RobotOutlined, UserOutlined } from '@ant-design/icons';
+import { submitAnswer } from '../redux/slices/appSlice';
 
 const Chatbot = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { questions } = useSelector((state) => state.app);
-  const [messages, setMessages] = useState([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState({});
+  const { messages, loading } = useSelector((state) => state.app);
+  const chatEndRef = useRef(null);
 
-  const displayNextQuestion = useCallback(() => {
-    const question = questions[currentQuestionIndex];
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        position: 'left',
-        type: 'text',
-        text: question.questionText,
-        date: new Date(),
-        id: uuidv4(),
-      },
-    ]);
-  }, [questions, currentQuestionIndex]);
-
-  useEffect(() => {
-    if (questions && questions.length > 0) {
-      displayNextQuestion();
-    }
-  }, [questions, displayNextQuestion]);
-
-  const handleUserResponse = (option) => {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        position: 'right',
-        type: 'text',
-        text: option,
-        date: new Date(),
-        id: uuidv4(),
-      },
-    ]);
-
-    setUserAnswers({ ...userAnswers, [currentQuestionIndex]: option });
-
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setTimeout(displayNextQuestion, 500);
-    } else {
-      // Submit answers to backend
-      dispatch(submitAnswers(userAnswers))
-        .unwrap()
-        .then(() => {
-          navigate('/results');
-        })
-        .catch((err) => {
-          console.error('Failed to submit answers:', err);
-        });
-    }
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  if (!questions || questions.length === 0) {
-    return <p>No questions available.</p>;
-  }
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-  const options = questions[currentQuestionIndex].options;
+  const isCurrentQuestion = (index) => {
+    return index === messages.filter(m => m.type === 'question').length - 1 
+           && !messages.some(m => m.type === 'classification');
+  };
+
+  const handleOptionClick = async (option) => {
+    if (loading.answer) return;
+    
+    dispatch({
+      type: 'app/addMessage',
+      payload: {
+        type: 'answer',
+        content: option
+      }
+    });
+
+    await dispatch(submitAnswer(option));
+  };
 
   return (
-    <div style={{ maxWidth: 600, margin: '20px auto' }}>
-      <ChatList className="chat-list" dataSource={messages} />
-
-      <div style={{ marginTop: 20 }}>
-        {options.map((option, index) => (
-          <button
-            key={index}
-            className="chat-button"
-            onClick={() => handleUserResponse(option)}
-          >
-            {option}
-          </button>
+    <div className="chat-container">
+      <div className="messages-container">
+        {messages.map((message, index) => (
+          <div key={index} className={`message ${message.type}`}>
+            {message.type === 'question' && (
+              <>
+                <RobotOutlined className="message-icon" />
+                <div className="message-content">
+                  <p>{message.content}</p>
+                  <div className="options-container">
+                    {message.options.map((option, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleOptionClick(option)}
+                        disabled={!isCurrentQuestion(index) || loading.answer}
+                        className="chat-button"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+            {message.type === 'answer' && (
+              <>
+                <div className="message-content user">
+                  <p>{message.content}</p>
+                </div>
+                <UserOutlined className="message-icon" />
+              </>
+            )}
+            {message.type === 'classification' && (
+              <div className="classification-result">
+                <h3>Classification Result:</h3>
+                <div className="interests">
+                  <h4>Interests:</h4>
+                  {message.content.interests.map((interest, i) => (
+                    <p key={i}>{interest}</p>
+                  ))}
+                </div>
+                <div className="relevant-sections">
+                  <h4>Relevant Content:</h4>
+                  {message.content.relevant_sections.map((section, i) => (
+                    <p key={i}>{section}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ))}
+        <div ref={chatEndRef} />
       </div>
     </div>
   );
