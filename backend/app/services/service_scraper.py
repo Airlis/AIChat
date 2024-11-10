@@ -5,6 +5,7 @@ from app.utils.scraper import WebScraper
 from app.utils.ai_client import AIClient
 from app.database.db_dynamodb import DynamoDB
 from app.caching.cache_redis import RedisCache
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -41,13 +42,13 @@ class ScraperService:
                 # Continue with scraping if cache fails
 
             # Scrape and analyze new content
-            content_data = self.scraper.scrape_content(url)
-            if not content_data or not content_data.get('sections'):
-                raise ValueError("No content scraped from URL")
+            content = self.scraper.scrape_content(url)
+            if not content:
+                raise ValueError(f"Failed to scrape content from {url}")
 
             # Extract text for analysis
             text_content = "\n\n".join(
-                section['text'] for section in content_data['sections']
+                section['text'] for section in content['sections']
                 if section.get('text')
             )
 
@@ -60,21 +61,41 @@ class ScraperService:
                 raise ValueError("Content analysis failed")
 
             result = {
-                'content': content_data,
+                'content': content,
                 'analysis': content_analysis
             }
 
             # Try to cache the result
             try:
-                self.redis_cache.set_content_analysis(url, result)
-                self.dynamodb.save_content_analysis(
+                # Cache in Redis
+                if not self.redis_cache.set_content_analysis(url, result):
+                    logger.error(f"Redis cache save failed for URL {url}")
+                
+                # Save to DynamoDB with size check
+                content_size = len(json.dumps(content))
+                analysis_size = len(json.dumps(content_analysis))
+                logger.info(f"Content size: {content_size}, Analysis size: {analysis_size}")
+                
+                if content_size + analysis_size > 380000:  # Leave buffer for other fields
+                    logger.warning("Content too large for DynamoDB, truncating...")
+                    # Truncate content to fit
+                    while content_size + analysis_size > 380000:
+                        if len(content['sections']) > 1:
+                            content['sections'].pop()
+                            content_size = len(json.dumps(content))
+                
+                dynamo_success = self.dynamodb.save_content_analysis(
                     url=url,
-                    content=content_data,
+                    content=content,
                     analysis=content_analysis
                 )
+                if not dynamo_success:
+                    logger.error(f"DynamoDB save failed for URL {url}")
+                    
             except Exception as e:
-                logger.warning(f"Cache storage error for {url}: {e}")
-                # Continue even if caching fails
+                logger.error(f"Storage error for {url}: {str(e)}")
+                logger.exception("Full traceback:")
+                # Continue even if storage fails
 
             return result
 

@@ -29,13 +29,10 @@ class DynamoDB:
             timestamp = int(datetime.now().timestamp())
             content_hash = self._calculate_content_hash(str(content))
             
-            # Ensure analysis has required structure
-            if not isinstance(analysis, dict):
-                analysis = {
-                    "topics": ["General Content"],
-                    "audience": ["Website Visitors"],
-                    "sections": ["Main Content"]
-                }
+            # Log the size of content and analysis
+            content_size = len(json.dumps(content))
+            analysis_size = len(json.dumps(analysis))
+            logger.info(f"Content size: {content_size}, Analysis size: {analysis_size}")
             
             item = {
                 'url': url,
@@ -46,11 +43,12 @@ class DynamoDB:
                 'ttl': timestamp + (self.content_ttl_days * 24 * 3600)
             }
             
-            # Validate all required fields are present
-            required_fields = ['url', 'content', 'analysis', 'content_hash', 'timestamp', 'ttl']
-            missing_fields = [field for field in required_fields if field not in item]
-            if missing_fields:
-                logger.error(f"Missing required fields in item: {missing_fields}")
+            # Log the final item size
+            item_size = len(str(item))
+            logger.info(f"Total item size: {item_size} bytes")
+            
+            if item_size > 400000:  # DynamoDB item size limit is 400KB
+                logger.error(f"Item size ({item_size} bytes) exceeds DynamoDB limit")
                 return False
             
             logger.info(f"Saving to DynamoDB - URL: {url}, Hash: {content_hash}")
@@ -58,6 +56,7 @@ class DynamoDB:
             return True
         except Exception as e:
             logger.error(f"DynamoDB save error for URL {url}: {e}")
+            logger.exception("Full traceback:")
             return False
 
     def get_content_analysis(self, url: str) -> Optional[Dict]:

@@ -3,6 +3,7 @@ import { Input, Button } from 'antd';
 import { useDispatch } from 'react-redux';
 import { submitUrl } from '../redux/chatSlice';
 
+// Allows users to input a website URL and submit it for analysis.
 const UrlInput = () => {
   const [url, setUrl] = useState('');
   const dispatch = useDispatch();

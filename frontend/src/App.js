@@ -2,6 +2,7 @@ import React from 'react';
 import { Layout } from 'antd';
 import UrlInput from './components/UrlInput';
 import ChatBox from './components/ChatBox';
+import './styles/App.css';
 
 const { Header, Content } = Layout;
 

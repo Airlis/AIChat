@@ -1,8 +1,8 @@
 import React from 'react';
 import { Card, Button } from 'antd';
-import { useSelector } from 'react-redux';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { submitAnswer } from '../redux/chatSlice';
+import '../styles/components/Chatbot.css';
 
 const ChatBox = () => {
   const { messages } = useSelector(state => state.chat);
