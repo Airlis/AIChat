@@ -1,75 +1,63 @@
-.chat-button {
-  background-color: #1890ff;
-  color: #fff;
-  border: none;
-  padding: 10px 15px;
-  margin: 5px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.chat-button:hover {
-  background-color: #40a9ff;
-}
+/* src/styles/components/Chatbot.css */
 
 .chat-container {
-  max-width: 800px;
-  margin: 20px auto;
-  height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  scroll-behavior: smooth;
-}
-
-/* Add more specific styles */
-
-.message {
+.message-row {
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
-.message.answer {
-  flex-direction: row-reverse;
-}
-
-.message-icon {
-  font-size: 24px;
-  margin: 0 10px;
-}
-
-.message-content {
-  background: #f0f2f5;
-  padding: 12px 16px;
-  border-radius: 8px;
+.message-bubble {
   max-width: 70%;
+  padding: 10px 15px;
+  border-radius: 20px;
+  position: relative;
 }
 
-.message-content.user {
-  background: #1890ff;
+.message-bubble p {
+  margin: 0;
+}
+
+/* Chatbot Messages */
+.message-bubble.chatbot {
+  background-color: #f0f0f0;
+  align-self: flex-start;
+  border-bottom-left-radius: 0;
+}
+
+/* User Messages */
+.message-bubble.user {
+  background-color: #1890ff;
   color: white;
+  border-bottom-right-radius: 0;
+  margin-left: auto; /* Pushes the bubble to the right end */
+  text-align: left;  /* Ensures text is left-aligned within the bubble */
+}
+
+/* Classification Result */
+.message-bubble.classification {
+  background-color: #e6f7ff;
+  align-self: center;
+  border-radius: 10px;
+  width: 100%;
 }
 
 .options-container {
-  padding: 20px;
-  border-top: 1px solid #f0f2f5;
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
 }
 
-.classification-result {
-  width: 100%;
-  background: #f6ffed;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #b7eb8f;
+.option-button {
+  flex: 1;
+}
+
+@media (max-width: 600px) {
+  .message-bubble {
+    max-width: 100%;
+  }
 }

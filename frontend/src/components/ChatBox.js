@@ -1,16 +1,17 @@
 import React from 'react';
-import { Card, Button, Alert } from 'antd';
+import { useEffect, useRef } from 'react';
+import { Alert, Button } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
 import { submitAnswer } from '../redux/chatSlice';
-import '../styles/components/Chatbot.css';
+import '../styles/components/Chatbot.css'; // Ensure this CSS file includes the styles for chat bubbles
 
 // Displays questions, collects user answers, and shows classification results.
 const ChatBox = () => {
-  const { messages } = useSelector(state => state.chat);
+  const { messages, error } = useSelector((state) => state.chat);
   const dispatch = useDispatch();
-  const { error } = useSelector(state => state.chat);
+  const chatEndRef = useRef(null);
 
-  const hasClassification = messages.some(msg => msg.type === 'classification');
+  const hasClassification = messages.some((msg) => msg.type === 'classification');
 
   const handleAnswer = (answer) => {
     dispatch(submitAnswer(answer));
@@ -21,88 +22,81 @@ const ChatBox = () => {
     .filter((index) => index !== null)
     .pop();
 
-  if (error) {
-    return <Alert message="Error" description={error} type="error" showIcon />;
-  }
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   return (
-    <Card style={{ maxWidth: '800px', margin: '20px auto' }}>
+    <div style={{ maxWidth: '800px', width: '100%', margin: '20px auto' }}>
       {error && (
-        <Alert
-          message="Error"
-          description={error}
-          type="error"
-          showIcon
-          style={{ marginBottom: '20px' }}
-        />
+        <Alert message="Error" description={error} type="error" showIcon style={{ marginBottom: '20px' }} />
       )}
-      {messages.map((msg, index) => (
-        <div key={msg.id || index} style={{ marginBottom: '20px' }}>
-          {/* Question */}
-          {msg.type === 'question' && (
-            <div>
-              <p>{msg.content}</p>
-              { !hasClassification && (
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div className="chat-container">
+        {messages.map((msg, index) => (
+          <div key={msg.id || index} className="message-row">
+            {/* Chatbot Message */}
+            {msg.type === 'question' && (
+              <div className="message-bubble chatbot">
+                <p>{msg.content}</p>
+                {!hasClassification && index === lastQuestionIndex && (
+                  <div className="options-container">
                     {msg.options.map((option, i) => (
-                      <Button 
-                        key={i} 
+                      <Button
+                        key={i}
                         onClick={() => handleAnswer(option)}
                         aria-label={`Option: ${option}`}
                         disabled={index !== lastQuestionIndex}
+                        className="option-button"
                       >
                         {option}
                       </Button>
                     ))}
+                    <div ref={chatEndRef} />
                   </div>
-                )
-              }
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
-          {/* Answer */}
-          {msg.type === 'answer' && (
-            <p style={{ textAlign: 'right', color: '#1890ff' }}>
-              {msg.content}
-            </p>
-          )}
+            {/* User Message */}
+            {msg.type === 'answer' && (
+              <div className="message-bubble user">
+                <p>{msg.content}</p>
+              </div>
+            )}
 
-          {/* Classification */}
-          {msg.type === 'classification' && (
-            <div 
-              style={{ 
-                background: '#f0f2f5',
-                padding: '10px', 
-                borderRadius: '4px' 
-              }}
-            >
-              <h4>Classification Results:</h4>
-              {msg.content.interests && (
-                <>
-                  <p><strong>Interests:</strong></p>
-                  <ul>
-                    {msg.content.interests.map((interest, i) => (
-                      <li key={i}>{interest}</li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {msg.content.relevant_sections && (
-                <>
-                  <p><strong>Relevant Sections:</strong></p>
-                  <ul>
+            {/* Classification Result */}
+            {msg.type === 'classification' && (
+              <div className="message-bubble classification">
+                <h4>Classification Results:</h4>
+                {msg.content.interests && (
+                  <>
+                    <p>
+                      <strong>Interests:</strong>
+                    </p>
+                    <ul>
+                      {msg.content.interests.map((interest, i) => (
+                        <li key={i}>{interest}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {msg.content.relevant_sections && (
+                  <>
+                    <p>
+                      <strong>Relevant Sections:</strong>
+                    </p>
                     {msg.content.relevant_sections.map((section, i) => (
-                      <li key={i}>{section}</li>
+                      <p key={i}>{section}</p>
                     ))}
-                  </ul>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
-    </Card>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 
-export default ChatBox; 
+export default ChatBox;

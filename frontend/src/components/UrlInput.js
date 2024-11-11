@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Input, Button, message, Alert } from 'antd';
+import { Input, Button, message, Alert, Space } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
 import { submitUrl, resetChat } from '../redux/chatSlice';
 
@@ -38,8 +38,8 @@ const UrlInput = () => {
   }
 
   return (
-    <div style={{ maxWidth: '500px', margin: '20px auto' }}>
-      <Input.Group compact>
+    <div style={{ maxWidth: '800px', width: '100%', margin: '20px auto' }}>
+      <Space.Compact style={{ width: '100%' }}>
         <Input 
           value={url}
           onChange={(e) => setUrl(e.target.value)}
@@ -50,7 +50,7 @@ const UrlInput = () => {
         <Button type="primary" onClick={handleSubmit} aria-label='Analyze URL'>
           Analyze
         </Button>
-      </Input.Group>
+      </Space.Compact>
     </div>
   );
 };

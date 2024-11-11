@@ -2,10 +2,14 @@ import React from 'react';
 import { Spin } from 'antd';
 
 const LoadingOverlay = () => (
-  <div style={styles.overlay}>
-    <Spin tip="Loading..." size="large" />
-  </div>
-);
+    <div style={styles.overlay}>
+      <Spin tip="Loading..." size="large">
+        {/* Placeholder div to enable the tip */}
+        <div style={{ width: '100%', height: '100%' }}></div>
+      </Spin>
+    </div>
+  );
+  
 
 const styles = {
   overlay: {
