@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import {API_URL} from '../constants/config'
+import { v4 as uuidv4 } from 'uuid';
 
 export const submitUrl = createAsyncThunk(
   'chat/submitUrl',
@@ -14,7 +15,8 @@ export const submitAnswer = createAsyncThunk(
   'chat/submitAnswer',
   async (answer, { getState }) => {
     const { sessionId } = getState().chat;
-    const response = await axios.post(`${API_URL}/api/respond`, 
+    const response = await axios.post(
+      `${API_URL}/api/respond`, 
       { answer },
       { headers: { 'Session-Id': sessionId } }
     );
@@ -30,7 +32,14 @@ const chatSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    resetChat: (state) => {
+      state.messages = [];
+      state.sessionId = null;
+      state.loading = false;
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Handling submitUrl
@@ -42,6 +51,8 @@ const chatSlice = createSlice({
         state.loading = false;
         state.sessionId = action.payload.session_id;
         state.messages.push({
+          // keep tracking new question
+          id: uuidv4(),
           type: 'question',
           content: action.payload.question,
           options: action.payload.options,
@@ -59,16 +70,19 @@ const chatSlice = createSlice({
       .addCase(submitAnswer.fulfilled, (state, action) => {
         state.loading = false;
         state.messages.push({
+          id: uuidv4(),
           type: 'answer',
-          content: action.meta.arg,
+          content: action.meta.arg,  // The user's answer
         });
         if (action.payload.classification) {
           state.messages.push({
+            id: uuidv4(),
             type: 'classification',
             content: action.payload.classification,
           });
         } else {
           state.messages.push({
+            id: uuidv4(),
             type: 'question',
             content: action.payload.question,
             options: action.payload.options,
@@ -81,5 +95,7 @@ const chatSlice = createSlice({
       });
   },
 });
+
+export const { resetChat } = chatSlice.actions;
 
 export default chatSlice.reducer; 

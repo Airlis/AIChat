@@ -76,7 +76,7 @@ class AIClient:
         """Generate next question based on content analysis and previous responses"""
         try:
             system_prompt = """You are a website visitor classifier. 
-            Generate relevant questions to understand visitor interests based on the website's content.
+            Generate relevant questions to understand visitor interests or industry based on the website's content.
             
             Rules:
             1. Questions should be specific to the website content
@@ -101,7 +101,7 @@ class AIClient:
             user_prompt = f"""Context: {json.dumps(context, indent=2)}
             
             Generate a natural follow-up question based on the website's content and user's journey.
-            If this is the first question, focus on understanding their primary interest.
+            If this is the first question, focus on understanding their primary interest or industry.
             If this is a follow-up, explore deeper based on their previous answer: {previous_responses[-1]['answer'] if previous_responses else 'None'}"""
 
             response = self.client.chat.completions.create(
@@ -151,15 +151,16 @@ class AIClient:
             }
 
     def generate_classification(self, content_analysis: Dict, responses: List[Dict]) -> Dict:
+        print('start generating')
         """Generate final classification based on responses"""
         try:
             system_prompt = """You are analyzing a user's website interaction.
-            Create a detailed classification that includes their specific interests and relevant content details.
+            Create a detailed classification that includes their specific interests or industry and relevant content details.
             
             Rules:
-            1. Describe interests based on their specific responses and interactions
+            1. Describe interests or industry based on their specific responses and interactions
             2. For relevant_sections, provide 2-3 detailed content summaries that:
-               - Directly relate to their expressed interests
+               - Directly relate to their expressed interests or industry
                - Include specific details from the website content
                - Are written as complete, informative sentences
                - Avoid generic phrases like "The website provides..."
@@ -168,20 +169,22 @@ class AIClient:
             Return in this JSON format:
             {
                 "interests": [
-                    "Detailed description of user's primary interest"
+                    "user's primary interest or industry in short phrases"
                 ],
                 "relevant_sections": [
-                    "Detailed summary of specific content, features, and information that matches their interest",
+                    "Detailed summary of specific content, features, and information that matches their interest or industry",
                     "Additional relevant content summary with specific details and information"
                 ]
-            }"""
+            }
+            Do not include any markdown, code snippets, or explanations. Return only the JSON object.
+            """
 
             user_prompt = f"""Context:
             Content Analysis: {json.dumps(content_analysis, indent=2)}
             User Responses: {json.dumps(responses, indent=2)}
             
             Create a focused classification that:
-            1. Accurately describes their specific interests based on their responses
+            1. Accurately describes their specific interests or industry based on their responses
             2. Provides detailed summaries of the most relevant content
             3. Includes specific features, capabilities, or information they would find valuable
             
@@ -197,6 +200,7 @@ class AIClient:
             )
 
             raw_response = response.choices[0].message.content.strip()
+            logger.info(f"Raw classification response: {raw_response}")
             cleaned_response = raw_response.strip('`').replace('```json', '').replace('```', '').strip()
             
             try:
@@ -204,6 +208,8 @@ class AIClient:
                 # Validate the quality of the response
                 if not self._is_valid_classification(classification):
                     raise ValueError("Classification doesn't meet quality standards")
+                print("classification")
+                print(classification)
                 return classification
             except Exception as e:
                 logger.error(f"Classification error: {e}")
@@ -232,6 +238,7 @@ class AIClient:
 
     def _generate_focused_classification(self, content_analysis: Dict, responses: List[Dict]) -> Dict:
         """Generate a focused classification with specific content summaries"""
+        print('focused')
         try:
             # Extract the main topic of interest from responses
             main_interest = responses[-1]['answer']
@@ -252,7 +259,7 @@ class AIClient:
             if relevant_content:
                 return {
                     "interests": [
-                        f"Focused interest in {main_interest} and its specific capabilities"
+                        f"Focused interest or industry in {main_interest} and its specific capabilities"
                     ],
                     "relevant_sections": [
                         f"{summary[:200]}..." for summary in relevant_content[:2]
@@ -261,7 +268,7 @@ class AIClient:
                 
             return {
                 "interests": [
-                    f"Interest in {main_interest} features and functionality"
+                    f"Interest or industry in {main_interest} features and functionality"
                 ],
                 "relevant_sections": [
                     "Latest features include advanced performance capabilities and innovative technology integrations.",
@@ -273,7 +280,7 @@ class AIClient:
             logger.error(f"Focused classification error: {e}")
             return {
                 "interests": [
-                    "Interest in specific product features and capabilities"
+                    "Interest or industry in specific product features and capabilities"
                 ],
                 "relevant_sections": [
                     "Advanced features and capabilities designed for optimal performance.",
@@ -285,10 +292,10 @@ class AIClient:
         """Determine if we have enough specific information to generate a classification"""
         try:
             prompt = """Analyze these user responses and determine if we have enough specific information 
-            to generate a meaningful classification of their interests.
+            to generate a meaningful classification of their interests or industry.
             
             Return true only if:
-            1. Responses show clear interest in specific topics
+            1. Responses show clear interest or industry in specific topics
             2. We have enough context to identify relevant content sections
             3. Additional questions would not significantly improve understanding
             
@@ -309,4 +316,4 @@ class AIClient:
             return response.choices[0].message.content.strip().lower() == 'true'
         except Exception as e:
             logger.error(f"Classification decision error: {e}")
-            return len(responses) >= 2  # Default to true if we have at least 2 responses
+            return len(responses) >= 2  # Default to true if we have at least 2 responsesp

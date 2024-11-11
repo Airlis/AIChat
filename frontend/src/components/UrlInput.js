@@ -1,35 +1,37 @@
 import React, { useState } from 'react';
-import { Input, Button, message, Spin, Alert } from 'antd';
+import { Input, Button, message, Alert } from 'antd';
 import { useDispatch, useSelector } from 'react-redux';
-import { submitUrl } from '../redux/chatSlice';
+import { submitUrl, resetChat } from '../redux/chatSlice';
 
 // Allows users to input a website URL and submit it for analysis.
 const UrlInput = () => {
   const [url, setUrl] = useState(''); 
   const dispatch = useDispatch();
-  const { loading, error } = useSelector(state => state.chat);
+  const { error } = useSelector(state => state.chat);
 
   const isValidUrl = (urlString) => {
+    let testUrl = urlString;
+    if (!/^https?:\/\//i.test(testUrl)) {
+      testUrl = 'http://' + testUrl;
+    }
     try {
-      new URL(urlString);
-      return true;
+      new URL(testUrl);
+      return testUrl; // Return the processed, valid URL
     } catch (e) {
-      return false;
+      return null; // Return null if invalid
     }
   };
 
   const handleSubmit = () => {
-    if (isValidUrl(url)) {
-      dispatch(submitUrl(url));
+    const processedUrl = isValidUrl(url);
+    if (processedUrl) {
+      dispatch(resetChat());
+      dispatch(submitUrl(processedUrl));
       setUrl('');
     } else {
       message.error('Please enter a valid URL.');
     }
   };
-
-  if (loading) {
-    return <Spin tip="Loading..." />;
-  }
 
   if (error) {
     return <Alert message="Error" description={error} type="error" showIcon />;

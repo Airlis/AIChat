@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Button, Spin, Alert } from 'antd';
+import { Card, Button, Alert } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
 import { submitAnswer } from '../redux/chatSlice';
 import '../styles/components/Chatbot.css';
@@ -8,40 +8,55 @@ import '../styles/components/Chatbot.css';
 const ChatBox = () => {
   const { messages } = useSelector(state => state.chat);
   const dispatch = useDispatch();
+  const { error } = useSelector(state => state.chat);
+
+  const hasClassification = messages.some(msg => msg.type === 'classification');
 
   const handleAnswer = (answer) => {
     dispatch(submitAnswer(answer));
   };
 
-  const { loading, error } = useSelector(state => state.chat);
-
-  if (loading) {
-    return <Spin tip="Loading..." />;
-  }
+  const lastQuestionIndex = messages
+    .map((msg, index) => (msg.type === 'question' ? index : null))
+    .filter((index) => index !== null)
+    .pop();
 
   if (error) {
     return <Alert message="Error" description={error} type="error" showIcon />;
   }
 
   return (
-    <Card style={{ maxWidth: '500px', margin: '20px auto' }}>
+    <Card style={{ maxWidth: '800px', margin: '20px auto' }}>
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          style={{ marginBottom: '20px' }}
+        />
+      )}
       {messages.map((msg, index) => (
-        <div key={index} style={{ marginBottom: '20px' }}>
+        <div key={msg.id || index} style={{ marginBottom: '20px' }}>
           {/* Question */}
           {msg.type === 'question' && (
             <div>
               <p>{msg.content}</p>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {msg.options.map((option, i) => (
-                  <Button 
-                    key={i} 
-                    onClick={() => handleAnswer(option)}
-                    aria-label={`Option: ${option}`}
-                  >
-                    {option}
-                  </Button>
-                ))}
-              </div>
+              { !hasClassification && (
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {msg.options.map((option, i) => (
+                      <Button 
+                        key={i} 
+                        onClick={() => handleAnswer(option)}
+                        aria-label={`Option: ${option}`}
+                        disabled={index !== lastQuestionIndex}
+                      >
+                        {option}
+                      </Button>
+                    ))}
+                  </div>
+                )
+              }
             </div>
           )}
 
@@ -54,13 +69,34 @@ const ChatBox = () => {
 
           {/* Classification */}
           {msg.type === 'classification' && (
-            <div style={{ background: '#f0f2f5', padding: '10px', borderRadius: '4px' }}>
+            <div 
+              style={{ 
+                background: '#f0f2f5',
+                padding: '10px', 
+                borderRadius: '4px' 
+              }}
+            >
               <h4>Classification Results:</h4>
-              <ul>
-                {msg.content.interests.map((interest, i) => (
-                  <li key={i}>{interest}</li>
-                ))}
-              </ul>
+              {msg.content.interests && (
+                <>
+                  <p><strong>Interests:</strong></p>
+                  <ul>
+                    {msg.content.interests.map((interest, i) => (
+                      <li key={i}>{interest}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {msg.content.relevant_sections && (
+                <>
+                  <p><strong>Relevant Sections:</strong></p>
+                  <ul>
+                    {msg.content.relevant_sections.map((section, i) => (
+                      <li key={i}>{section}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
           )}
         </div>
