@@ -4,6 +4,7 @@ import UrlInput from './components/UrlInput';
 import ChatBox from './components/ChatBox';
 import './styles/App.css';
 
+// The main application component that brings everything together.
 const { Header, Content } = Layout;
 
 const App = () => {

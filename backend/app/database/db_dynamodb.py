@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from flask import current_app
 from hashlib import sha256
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,9 @@ class DynamoDB:
             logger.info(f"Saving to DynamoDB - URL: {url}, Hash: {content_hash}")
             self.content_table.put_item(Item=item)
             return True
+        except ClientError as e:
+            logger.exception(f"DynamoDB ClientError for URL {url}: {e}")
+            return False
         except Exception as e:
             logger.error(f"DynamoDB save error for URL {url}: {e}")
             logger.exception("Full traceback:")

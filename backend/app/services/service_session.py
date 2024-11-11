@@ -65,6 +65,14 @@ class SessionService:
             if not session_data:
                 raise ValueError("Session not found")
 
+            # Save current response to database
+            current_question = session_data['current_question']
+            self.db.save_response(
+                session_id=session_id,
+                question=current_question['question'],
+                answer=answer
+            )
+
             # Save current response
             current_question = session_data['current_question']
             session_data['responses'].append({

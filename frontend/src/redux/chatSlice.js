@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import {API_URL} from '../constants/config'
 
 export const submitUrl = createAsyncThunk(
   'chat/submitUrl',
@@ -29,38 +28,58 @@ const chatSlice = createSlice({
     messages: [],
     sessionId: null,
     loading: false,
-    error: null
+    error: null,
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // Handling submitUrl
+      .addCase(submitUrl.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(submitUrl.fulfilled, (state, action) => {
+        state.loading = false;
         state.sessionId = action.payload.session_id;
         state.messages.push({
           type: 'question',
           content: action.payload.question,
-          options: action.payload.options
+          options: action.payload.options,
         });
       })
+      .addCase(submitUrl.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to submit URL';
+      })
+      // Handling submitAnswer
+      .addCase(submitAnswer.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(submitAnswer.fulfilled, (state, action) => {
+        state.loading = false;
         state.messages.push({
           type: 'answer',
-          content: action.meta.arg
+          content: action.meta.arg,
         });
         if (action.payload.classification) {
           state.messages.push({
             type: 'classification',
-            content: action.payload.classification
+            content: action.payload.classification,
           });
         } else {
           state.messages.push({
             type: 'question',
             content: action.payload.question,
-            options: action.payload.options
+            options: action.payload.options,
           });
         }
+      })
+      .addCase(submitAnswer.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to submit answer';
       });
-  }
+  },
 });
 
 export default chatSlice.reducer; 

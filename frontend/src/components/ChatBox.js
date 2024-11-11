@@ -1,9 +1,10 @@
 import React from 'react';
-import { Card, Button } from 'antd';
+import { Card, Button, Spin, Alert } from 'antd';
 import { useSelector, useDispatch } from 'react-redux';
 import { submitAnswer } from '../redux/chatSlice';
 import '../styles/components/Chatbot.css';
 
+// Displays questions, collects user answers, and shows classification results.
 const ChatBox = () => {
   const { messages } = useSelector(state => state.chat);
   const dispatch = useDispatch();
@@ -11,6 +12,16 @@ const ChatBox = () => {
   const handleAnswer = (answer) => {
     dispatch(submitAnswer(answer));
   };
+
+  const { loading, error } = useSelector(state => state.chat);
+
+  if (loading) {
+    return <Spin tip="Loading..." />;
+  }
+
+  if (error) {
+    return <Alert message="Error" description={error} type="error" showIcon />;
+  }
 
   return (
     <Card style={{ maxWidth: '500px', margin: '20px auto' }}>
@@ -25,6 +36,7 @@ const ChatBox = () => {
                   <Button 
                     key={i} 
                     onClick={() => handleAnswer(option)}
+                    aria-label={`Option: ${option}`}
                   >
                     {option}
                   </Button>

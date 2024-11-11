@@ -1,3 +1,4 @@
+// Contains configuration constants like API endpoints and error messages./*
 export const API_URL = process.env.REACT_APP_API_URL;
 export const API_ENDPOINTS = {
   SCRAPE: '/api/scrape',
@@ -11,9 +12,4 @@ export const ERROR_MESSAGES = {
   INVALID_URL: 'Please enter a valid URL.',
   SESSION_EXPIRED: 'Your session has expired. Please start over.',
   RATE_LIMIT: 'Too many requests. Please try again later.'
-};
-export const ROUTES = {
-  HOME: '/',
-  CHAT: '/chat',
-  RESULTS: '/results'
 };

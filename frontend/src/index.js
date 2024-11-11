@@ -6,6 +6,7 @@ import chatReducer from './redux/chatSlice';
 import App from './App';
 import 'antd/dist/reset.css';
 
+// The entry point of the React application.
 const store = configureStore({
   reducer: {
     chat: chatReducer
