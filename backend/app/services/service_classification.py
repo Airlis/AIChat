@@ -1,7 +1,7 @@
 from typing import Dict, Optional
 import logging
 from app.models import UserClassification
-from app.extensions import db
+from app.database.db_postgresql import PostgreSQL
 from app.utils.ai_client import AIClient
 from app.caching.cache_redis import RedisCache
 
@@ -11,6 +11,7 @@ class ClassificationService:
     def __init__(self):
         self.ai_client = AIClient()
         self.cache = RedisCache()
+        self.db = PostgreSQL()
 
     def generate_classification(self, session_id: str) -> Optional[Dict]:
         """Generate final classification based on session data"""
@@ -28,13 +29,12 @@ class ClassificationService:
             )
 
             # Save to database
-            user_classification = UserClassification(
-                session_id=session_id,
-                interests=classification['interests'],
-                relevant_content=classification['relevant_sections']
-            )
-            db.session.add(user_classification)
-            db.session.commit()
+            if not self.db.save_classification(
+                session_id,
+                classification['interests'],
+                classification['relevant_sections']
+            ):
+                raise Exception("Failed to save classification")
 
             # Cache results
             self.cache.set_classification(session_id, classification)
@@ -54,9 +54,7 @@ class ClassificationService:
                 return classification
 
             # Check database
-            user_classification = UserClassification.query.filter_by(
-                session_id=session_id
-            ).first()
+            user_classification = self.db.get_classification(session_id)
             
             if user_classification:
                 classification = {

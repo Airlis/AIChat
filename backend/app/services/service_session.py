@@ -18,38 +18,32 @@ class SessionService:
         self.min_questions = 3  # Minimum number of questions before classification
         self.max_questions = 5  # Maximum number of questions before classification
 
-    def create_session(self, url: str, content_analysis: Dict) -> str:
+    def create_session(self, url: str, content_analysis: Dict, content_hash: str) -> str:
         """Create new session and generate first question"""
         try:
             session_id = str(uuid4())
-            
+
             # Save to database
             if not self.db.save_session(session_id, url, content_analysis):
                 raise Exception("Failed to save session")
 
-            # Generate first question
-            try:
-                question = self.ai_client.generate_next_question(
+            # Get the cached first question
+            first_question = content_analysis.get('first_question')
+            if not first_question:
+                # Fallback in case first_question is not present
+                first_question = self.ai_client.generate_first_question(
                     content_analysis=content_analysis
                 )
-            except Exception as e:
-                logger.error(f"Error generating question: {e}")
-                question = {
-                    "question": "What interests you about this website?",
-                    "options": [
-                        "Products and Features",
-                        "Company Information",
-                        "Support and Help",
-                        "Other"
-                    ]
-                }
+                # Cache the first question
+                self.cache.set_first_question(content_hash, first_question)
 
             # Cache session data
             session_data = {
                 'url': url,
                 'content_analysis': content_analysis,
-                'current_question': question,
-                'responses': []
+                'current_question': first_question,
+                'responses': [],
+                'content_hash': content_hash
             }
             self.cache.set_session(session_id, session_data)
 
@@ -74,26 +68,21 @@ class SessionService:
             )
 
             # Save current response
-            current_question = session_data['current_question']
             session_data['responses'].append({
                 'question': current_question['question'],
                 'answer': answer
             })
-            
+
             # Check if we have enough information for classification
-            if len(session_data['responses']) >= self.min_questions:  # At least 2 responses
+            if len(session_data['responses']) >= self.min_questions:
                 # Ask AI if we should classify now
                 should_classify = self.ai_client.should_generate_classification(
                     content_analysis=session_data['content_analysis'],
                     responses=session_data['responses']
                 )
-                
-                if should_classify:
-                    return None  # Trigger classification
 
-            # Continue with next question if needed
-            if len(session_data['responses']) >= self.max_questions:
-                return None
+                if should_classify or len(session_data['responses']) >= self.max_questions:
+                    return None  # Trigger classification
 
             # Generate next question
             next_question = self.ai_client.generate_next_question(

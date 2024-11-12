@@ -72,6 +72,74 @@ class AIClient:
                 "sections": ["Main Content"]
             }
 
+    def generate_first_question(self, content_analysis: Dict) -> Dict:
+        """Generate the first question based on content analysis"""
+        try:
+            system_prompt = """You are a website visitor classifier. 
+            Generate the first question to understand visitor major interests or industry based on the website's content.
+            
+            Rules:
+            1. Questions should be specific to the website content
+            2. Options should be based on actual content topics and sections
+            3. Include 3-5 distinct, specific options
+            4. Keep language neutral and professional
+            
+            Return in this exact JSON format without any markdown:
+            {
+                "question": "Your specific question here?",
+                "options": ["Specific Option 1", "Specific Option 2", "Specific Option 3", "Specific Option 4"]
+            }"""
+
+            user_prompt = f"""Content Analysus: {json.dumps(content_analysis, indent=2)}
+            Generate the first question to ask the user, focus on understanding their primary interest or industry.
+            """
+
+            response = self.client.chat.completions.create(
+                model=self.question_model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7
+            )
+
+            raw_response = response.choices[0].message.content.strip()
+            cleaned_response = raw_response.strip('`').replace('```json', '').replace('```', '').strip()
+            
+            try:
+                question_data = json.loads(cleaned_response)
+                if not all(key in question_data for key in ['question', 'options']):
+                    raise ValueError("Missing required fields in response")
+                if len(question_data['options']) < 3:
+                    raise ValueError("Not enough options provided")
+                return question_data
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.error(f"Question generation error: {e}")
+                logger.error(f"Raw response: {cleaned_response}")
+                # Simple fallback that doesn't categorize options
+                return {
+                    "question": "What specific information are you looking for on this website?",
+                    "options": [
+                        "More details about what was mentioned",
+                        "Different topic or section",
+                        "Specific features or capabilities",
+                        "Additional information"
+                    ]
+                }
+
+        except Exception as e:
+            logger.error(f"Question generation error: {e}")
+            # Generic fallback without categorization
+            return {
+                "question": "What would you like to know more about?",
+                "options": [
+                    "Additional details",
+                    "Different topics",
+                    "Specific information",
+                    "Other aspects"
+                ]
+            }
+
     def generate_next_question(self, content_analysis: Dict, previous_responses: List[Dict] = None) -> Dict:
         """Generate next question based on content analysis and previous responses"""
         try:
