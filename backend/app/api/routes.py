@@ -32,7 +32,6 @@ def scrape():
             return jsonify({'error': 'Failed to process URL'}), HTTPStatus.BAD_REQUEST
 
         session_id = session_service.create_session(url, content_data['analysis'], content_data['content_hash'])
-        session_data = session_service.get_session_data(session_id)
 
         response = jsonify({
             'session_id': session_id,

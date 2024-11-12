@@ -31,7 +31,6 @@ const ChatBox = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // **Add this useEffect hook**
   useEffect(() => {
     // Find the last message
     const lastMessage = messages[messages.length - 1];

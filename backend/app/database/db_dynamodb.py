@@ -20,15 +20,10 @@ class DynamoDB:
         self.content_table = self.dynamodb.Table(current_app.config['DYNAMODB_SCRAPED_CONTENT_TABLE'])
         self.content_ttl_days = int(current_app.config.get('CONTENT_TTL_DAYS', 7))
 
-    def _calculate_content_hash(self, content: str) -> str:
-        """Calculate SHA-256 hash of content"""
-        return sha256(content.encode('utf-8')).hexdigest()
-
-    def save_content_analysis(self, url: str, content: Dict, analysis: Dict) -> bool:
+    def save_content_analysis(self, url: str, content: Dict, analysis: Dict, content_hash: str) -> bool:
         """Save content analysis with content hash"""
         try:
             timestamp = int(datetime.now().timestamp())
-            content_hash = self._calculate_content_hash(json.dumps(content))
 
             item = {
                 'url': url,

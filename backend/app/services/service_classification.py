@@ -35,9 +35,6 @@ class ClassificationService:
             ):
                 raise Exception("Failed to save classification")
 
-            # Cache results
-            self.cache.set_classification(session_id, classification)
-
             return classification
         except Exception as e:
             logger.error(f"Error generating classification: {e}")
@@ -45,13 +42,9 @@ class ClassificationService:
             return None
 
     def get_classification(self, session_id: str) -> Optional[Dict]:
+        # Not used
         """Get existing classification from cache or database"""
         try:
-            # Check cache first
-            classification = self.cache.get_classification(session_id)
-            if classification:
-                return classification
-
             # Check database
             user_classification = self.db.get_classification(session_id)
             

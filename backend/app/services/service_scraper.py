@@ -26,7 +26,6 @@ class ScraperService:
 
     def _clean_content_for_hashing(self, content: Dict) -> Dict:
         """Remove or normalize dynamic elements from content"""
-        # Example: Remove timestamps, session IDs, dynamic ads, etc.
         cleaned_sections = []
         for section in content.get('sections', []):
             cleaned_section = {
@@ -99,7 +98,8 @@ class ScraperService:
                     self.dynamodb.save_content_analysis(
                         url=url,
                         content=content,
-                        analysis=content_analysis
+                        analysis=content_analysis,
+                        content_hash=current_content_hash
                     )
 
             # Check for cached first question

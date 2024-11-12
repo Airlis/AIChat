@@ -102,6 +102,7 @@ class PostgreSQL:
             return []
 
     def get_classification(self, session_id: str) -> Optional[Dict]:
+        # Not used
         """Get classification for a session"""
         try:
             classification = UserClassification.query.filter_by(session_id=session_id).first()
