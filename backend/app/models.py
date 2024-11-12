@@ -27,5 +27,4 @@ class UserClassification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     session_id = db.Column(db.String(36), db.ForeignKey('user_sessions.session_id'), nullable=False)
     interests = db.Column(db.JSON, nullable=False)
-    relevant_content = db.Column(db.JSON, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.now(timezone.utc))

@@ -225,22 +225,13 @@ class AIClient:
             Create a detailed classification that includes their specific interests or industry and relevant content details.
             
             Rules:
-            1. Describe interests or industry based on their specific responses and interactions
-            2. For relevant_sections, provide 2-3 detailed content summaries that:
-               - Directly relate to their expressed interests or industry
-               - Include specific details from the website content
-               - Are written as complete, informative sentences
-               - Avoid generic phrases like "The website provides..."
-               - Focus on actual content and features they would find relevant
+            Describe interests or industry based on their specific responses and interactions
+            
             
             Return in this JSON format:
             {
                 "interests": [
                     "user's primary interest or industry in short phrases"
-                ],
-                "relevant_sections": [
-                    "Detailed summary of specific content, features, and information that matches their interest or industry",
-                    "Additional relevant content summary with specific details and information"
                 ]
             }
             Do not include any markdown, code snippets, or explanations. Return only the JSON object.
@@ -255,7 +246,7 @@ class AIClient:
             2. Provides detailed summaries of the most relevant content
             3. Includes specific features, capabilities, or information they would find valuable
             
-            Write content summaries as informative sentences that directly describe the relevant information."""
+            """
 
             response = self.client.chat.completions.create(
                 model=self.content_model,
@@ -286,18 +277,11 @@ class AIClient:
 
     def _is_valid_classification(self, classification: Dict) -> bool:
         """Validate classification quality"""
-        if not all(key in classification for key in ['interests', 'relevant_sections']):
+        if not all(key in classification for key in ['interests']):
             return False
             
         # Check for generic phrases
-        generic_phrases = ['the website provides', 'information about', 'contains information']
-        for section in classification['relevant_sections']:
-            if any(phrase in section.lower() for phrase in generic_phrases):
-                return False
-                
-        # Ensure sections are detailed enough
-        if any(len(section) < 50 for section in classification['relevant_sections']):
-            return False
+        
                 
         return True
 
@@ -324,19 +308,12 @@ class AIClient:
                 return {
                     "interests": [
                         f"Focused interest or industry in {main_interest} and its specific capabilities"
-                    ],
-                    "relevant_sections": [
-                        f"{summary[:200]}..." for summary in relevant_content[:2]
                     ]
                 }
                 
             return {
                 "interests": [
                     f"Interest or industry in {main_interest} features and functionality"
-                ],
-                "relevant_sections": [
-                    "Latest features include advanced performance capabilities and innovative technology integrations.",
-                    "Comprehensive functionality offering enhanced user experience and productivity improvements."
                 ]
             }
                 
@@ -345,10 +322,6 @@ class AIClient:
             return {
                 "interests": [
                     "Interest or industry in specific product features and capabilities"
-                ],
-                "relevant_sections": [
-                    "Advanced features and capabilities designed for optimal performance.",
-                    "Integrated functionality providing enhanced user experience."
                 ]
             }
 

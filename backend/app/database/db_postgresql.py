@@ -41,13 +41,12 @@ class PostgreSQL:
             db.session.rollback()
             return False
 
-    def save_classification(self, session_id: str, interests: Dict, relevant_content: Dict) -> bool:
+    def save_classification(self, session_id: str, interests: Dict) -> bool:
         """Save final classification"""
         try:
             classification = UserClassification(
                 session_id=session_id,
                 interests=interests,
-                relevant_content=relevant_content,
                 timestamp=datetime.now(timezone.utc)
             )
             db.session.add(classification)
@@ -111,7 +110,6 @@ class PostgreSQL:
 
             return {
                 'interests': classification.interests,
-                'relevant_content': classification.relevant_content,
                 'timestamp': classification.timestamp.isoformat()
             }
         except Exception as e:

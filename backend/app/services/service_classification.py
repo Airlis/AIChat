@@ -31,8 +31,7 @@ class ClassificationService:
             # Save to database
             if not self.db.save_classification(
                 session_id,
-                classification['interests'],
-                classification['relevant_sections']
+                classification['interests']
             ):
                 raise Exception("Failed to save classification")
 
@@ -42,7 +41,7 @@ class ClassificationService:
             return classification
         except Exception as e:
             logger.error(f"Error generating classification: {e}")
-            db.session.rollback()
+            self.db.session.rollback()
             return None
 
     def get_classification(self, session_id: str) -> Optional[Dict]:
@@ -58,8 +57,7 @@ class ClassificationService:
             
             if user_classification:
                 classification = {
-                    'interests': user_classification.interests,
-                    'relevant_sections': user_classification.relevant_content
+                    'interests': user_classification.interests
                 }
                 # Update cache
                 self.cache.set_classification(session_id, classification)
