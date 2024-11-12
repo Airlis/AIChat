@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Avatar } from 'antd';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -12,9 +12,14 @@ const ChatBox = () => {
 
   const hasClassification = messages.some((msg) => msg.type === 'classification');
 
+  const [selectedOption, setSelectedOption] = useState(null);
+
   const handleAnswer = (answer) => {
-    dispatch(answerQuestion(answer)); // Mark question as answered and add user's message
-    dispatch(submitAnswer(answer));   // Then submit the answer to get the bot's response
+    if (!loading) {
+      setSelectedOption(answer);
+      dispatch(answerQuestion(answer));
+      dispatch(submitAnswer(answer));
+    }
   };
 
   const lastQuestionIndex = messages
@@ -55,7 +60,9 @@ const ChatBox = () => {
                               key={i}
                               onClick={() => handleAnswer(option)}
                               aria-label={`Option: ${option}`}
-                              disabled={loading || index !== lastQuestionIndex}
+                              disabled={loading || index !== lastQuestionIndex ||
+                                selectedOption !== null
+                              }
                               className="option-button"
                             >
                               {option}
