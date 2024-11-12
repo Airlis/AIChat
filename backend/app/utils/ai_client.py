@@ -151,7 +151,6 @@ class AIClient:
             }
 
     def generate_classification(self, content_analysis: Dict, responses: List[Dict]) -> Dict:
-        print('start generating')
         """Generate final classification based on responses"""
         try:
             system_prompt = """You are analyzing a user's website interaction.
@@ -208,8 +207,6 @@ class AIClient:
                 # Validate the quality of the response
                 if not self._is_valid_classification(classification):
                     raise ValueError("Classification doesn't meet quality standards")
-                print("classification")
-                print(classification)
                 return classification
             except Exception as e:
                 logger.error(f"Classification error: {e}")
@@ -238,7 +235,6 @@ class AIClient:
 
     def _generate_focused_classification(self, content_analysis: Dict, responses: List[Dict]) -> Dict:
         """Generate a focused classification with specific content summaries"""
-        print('focused')
         try:
             # Extract the main topic of interest from responses
             main_interest = responses[-1]['answer']
@@ -316,4 +312,4 @@ class AIClient:
             return response.choices[0].message.content.strip().lower() == 'true'
         except Exception as e:
             logger.error(f"Classification decision error: {e}")
-            return len(responses) >= 2  # Default to true if we have at least 2 responsesp
+            return len(responses) >= 2  # Default to true if we have at least 2 responses

@@ -1,0 +1,159 @@
+/* Chatbox Wrapper */
+.chatbox-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+/* Chatbox Container */
+.chatbox {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Chat Container */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* Message Row */
+.message-row {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.message-row.question,
+.message-row.classification,
+.message-row.chatbot {
+  justify-content: flex-start;
+}
+
+.message-row.answer {
+  justify-content: flex-end;
+}
+
+/* Chat Message */
+.chat-message {
+  display: flex;
+  align-items: flex-start;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.chat-message-content {
+  max-width: 70%;
+  margin-left: 10px;
+  background-color: #f0f0f0;
+  padding: 10px 15px;
+  border-radius: 20px;
+}
+
+.chat-message.user .chat-message-content {
+  margin-left: 0;
+  margin-right: 10px;
+  background-color: #1890ff;
+  color: white;
+}
+
+.chat-message.classification .chat-message-content {
+  background-color: #e6f7ff;
+}
+
+.chat-message-content p {
+  margin: 0;
+}
+
+/* Options Container */
+.options-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.option-button {
+  flex: 1;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  background-color: transparent;
+  padding: 0;
+}
+
+.typing-ellipsis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 24px;
+}
+
+.typing-ellipsis span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px;
+  background: #555;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: typing 1.4s infinite;
+}
+
+.typing-ellipsis span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-ellipsis span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-ellipsis span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing {
+  0% {
+    opacity: 0.4;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+/* Classification Result Styling */
+.classification-result {
+  background-color: transparent;
+  padding: 0;
+}
+
+.classification-result h4 {
+  margin-top: 0;
+}
+
+.classification-result p,
+.classification-result ul {
+  margin-bottom: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .chatbox {
+    max-width: 100%;
+  }
+
+  .chat-message-content {
+    max-width: 100%;
+  }
+}
