@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Avatar } from 'antd';
 import { RobotOutlined, UserOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { submitAnswer, answerQuestion } from '../redux/chatSlice'; // Import answerQuestion
+import { submitAnswer, answerQuestion } from '../redux/chatSlice';
 import '../styles/components/Chatbox.css';
 
 const ChatBox = () => {
@@ -29,6 +29,17 @@ const ChatBox = () => {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  // **Add this useEffect hook**
+  useEffect(() => {
+    // Find the last message
+    const lastMessage = messages[messages.length - 1];
+
+    // If the last message is a question and not loading, reset selectedOption
+    if (lastMessage && lastMessage.type === 'question' && !loading) {
+      setSelectedOption(null);
+    }
   }, [messages, loading]);
 
   return (
@@ -60,7 +71,9 @@ const ChatBox = () => {
                               key={i}
                               onClick={() => handleAnswer(option)}
                               aria-label={`Option: ${option}`}
-                              disabled={loading || index !== lastQuestionIndex ||
+                              disabled={
+                                loading ||
+                                index !== lastQuestionIndex ||
                                 selectedOption !== null
                               }
                               className="option-button"
