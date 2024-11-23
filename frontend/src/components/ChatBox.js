@@ -6,7 +6,7 @@ import { submitAnswer, answerQuestion } from '../redux/chatSlice';
 import '../styles/components/Chatbox.css';
 
 const ChatBox = () => {
-  const { messages, error, loading } = useSelector((state) => state.chat);
+  const { messages, chatError, loading } = useSelector((state) => state.chat);
   const dispatch = useDispatch();
   const chatEndRef = useRef(null);
 
@@ -43,10 +43,10 @@ const ChatBox = () => {
 
   return (
     <>
-      {error && (
+      {chatError && (
         <Alert
           message="Error"
-          description={error}
+          description={chatError}
           type="error"
           showIcon
           style={{ marginBottom: '20px' }}

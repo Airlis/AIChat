@@ -6,25 +6,41 @@ import { v4 as uuidv4 } from 'uuid';
 // Async thunk to submit the URL
 export const submitUrl = createAsyncThunk(
   'chat/submitUrl',
-  async (url) => {
-    const response = await axios.post(`${API_URL}/api/scrape`, { url });
-    return response.data;
+  async (url, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/scrape`, { url });
+      return response.data;
+    } catch (error) {
+      // Check if the error response exists and has a message
+      if (error.response && error.response.data && error.response.data.error) {
+        // Return the custom error message from the server
+        return rejectWithValue(error.response.data.error);
+      } else {
+        return rejectWithValue('An unexpected error occurred.');
+      }
+    }
   }
 );
 
 // Async thunk to submit the user's answer and get the bot's response
 export const submitAnswer = createAsyncThunk(
   'chat/submitAnswer',
-  async (answer, { getState }) => {
-    const { sessionId, messages } = getState().chat;
-
-    // Prepare data for the API call; messages already include the user's answer
-    const response = await axios.post(
-      `${API_URL}/api/respond`,
-      { answer, messages },
-      { headers: { 'Session-Id': sessionId } }
-    );
-    return response.data; // The bot's response
+  async (answer, { getState, rejectWithValue }) => {
+    try {
+      const { sessionId } = getState().chat;
+      const response = await axios.post(
+        `${API_URL}/api/respond`,
+        { answer },
+        { headers: { 'Session-Id': sessionId } }
+      );
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.data && error.response.data.error) {
+        return rejectWithValue(error.response.data.error);
+      } else {
+        return rejectWithValue('An unexpected error occurred.');
+      }
+    }
   }
 );
 
@@ -57,14 +73,22 @@ const chatSlice = createSlice({
     messages: [],
     sessionId: null,
     loading: false,
-    error: null,
+    urlError: null,
+    chatError: null,
   },
   reducers: {
     resetChat: (state) => {
       state.messages = [];
       state.sessionId = null;
       state.loading = false;
-      state.error = null;
+      state.urlError = null;
+      state.chatError = null;
+    },
+    clearUrlError: (state) => {
+      state.urlError = null;
+    },
+    clearChatError: (state) => {
+      state.chatError = null;
     },
     // Reducer for answering a question
     answerQuestion: (state, action) => {
@@ -88,7 +112,7 @@ const chatSlice = createSlice({
       // Handling submitUrl
       .addCase(submitUrl.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        state.urlError = null;
       })
       .addCase(submitUrl.fulfilled, (state, action) => {
         state.loading = false;
@@ -103,12 +127,12 @@ const chatSlice = createSlice({
       })
       .addCase(submitUrl.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to submit URL';
+        state.urlError = action.payload || 'Failed to submit URL';
       })
       // Handling submitAnswer
       .addCase(submitAnswer.pending, (state) => {
         state.loading = true;
-        state.error = null;
+        state.chatError = null;
       })
       .addCase(submitAnswer.fulfilled, (state, action) => {
         state.loading = false;
@@ -130,11 +154,11 @@ const chatSlice = createSlice({
       })
       .addCase(submitAnswer.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Failed to submit answer';
+        state.chatError = action.payload || 'Failed to submit answer';
       });
   },
 });
 
-export const { resetChat } = chatSlice.actions;
+export const { resetChat, clearUrlError, clearChatError } = chatSlice.actions;
 
 export default chatSlice.reducer;

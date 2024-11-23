@@ -29,7 +29,7 @@ def scrape():
 
         content_data = scraper_service.process_url(url)
         if not content_data:
-            return jsonify({'error': 'Failed to process URL'}), HTTPStatus.BAD_REQUEST
+            return jsonify({'error': 'Unable to scrape content from the provided URL. Please check the URL and try again.'}), HTTPStatus.BAD_REQUEST
 
         session_id = session_service.create_session(url, content_data['analysis'], content_data['content_hash'])
 
@@ -41,9 +41,12 @@ def scrape():
         response.headers['Session-Id'] = session_id
         return response
 
+    except ValueError as ve:
+        logger.exception(f"ValueError in scrape endpoint: {str(ve)}")
+        return jsonify({'error': str(ve)}), HTTPStatus.BAD_REQUEST
     except Exception as e:
         logger.exception(f"Error in scrape endpoint: {str(e)}")
-        return jsonify({'error': str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+        return jsonify({'error': 'An internal server error occurred.'}), HTTPStatus.INTERNAL_SERVER_ERROR
 
 @bp.route('/respond', methods=['POST', 'OPTIONS'])
 @cross_origin()

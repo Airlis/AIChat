@@ -25,19 +25,30 @@ class DynamoDB:
         try:
             timestamp = int(datetime.now().timestamp())
 
+            # Serialize analysis
+            analysis_json = json.dumps(analysis)
+
+            # Prepare item to store in DynamoDB
             item = {
                 'url': url,
-                'content': json.dumps(content),
-                'analysis': json.dumps(analysis),
+                'analysis': analysis_json,
                 'content_hash': content_hash,
                 'timestamp': timestamp,
                 'ttl': timestamp + (self.content_ttl_days * 24 * 3600)
             }
 
-            # Check item size to avoid DynamoDB limits
+            # Optionally include content if it's small enough
+            content_json = json.dumps(content)
+            item_size_estimate = len(json.dumps(item)) + len(content_json)
+            if item_size_estimate <= 400000:  # DynamoDB item size limit is 400KB
+                item['content'] = content_json
+            else:
+                logger.warning(f"Content too large to store in DynamoDB for URL {url}")
+
+            # Final item size check
             item_size = len(json.dumps(item))
-            if item_size > 400000:  # DynamoDB item size limit is 400KB
-                logger.error(f"Item size ({item_size} bytes) exceeds DynamoDB limit")
+            if item_size > 400000:
+                logger.error(f"Final item size ({item_size} bytes) exceeds DynamoDB limit")
                 return False
 
             logger.info(f"Saving to DynamoDB - URL: {url}, Hash: {content_hash}")

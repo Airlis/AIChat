@@ -11,9 +11,9 @@ class Config:
     CACHE_REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', 'defualt-openai-key')
-    OPENAI_CONTENT_MODEL = os.getenv('OPENAI_CONTENT_MODEL', 'gpt-4o')
-    OPENAI_QUESTION_MODEL = os.getenv('OPENAI_QUESTION_MODEL', 'gpt-4o')
-    OPENAI_CLASSIFICATION_MODEL = os.getenv('OPENAI_CLASSIFICATION_MODEL', 'gpt-4o')
+    OPENAI_CONTENT_MODEL = os.getenv('OPENAI_CONTENT_MODEL', 'gpt-4o-2024-11-20')
+    OPENAI_QUESTION_MODEL = os.getenv('OPENAI_QUESTION_MODEL', 'gpt-4o-2024-11-20')
+    OPENAI_CLASSIFICATION_MODEL = os.getenv('OPENAI_CLASSIFICATION_MODEL', 'gpt-4o-2024-11-20')
 
     AWS_REGION = os.getenv('AWS_REGION', 'ca-central-1')
     AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')

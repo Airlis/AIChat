@@ -7,6 +7,8 @@ from app.database.db_dynamodb import DynamoDB
 from app.caching.cache_redis import RedisCache
 import json
 import hashlib
+from urllib.parse import urlparse
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +45,15 @@ class ScraperService:
         """Process URL: scrape, analyze, and cache content"""
         try:
             # Normalize URL
-            if not url.startswith(('http://', 'https://')):
-                url = 'https://' + url
+            parsed_url = urlparse(url)
+            if not parsed_url.scheme:
+                url = 'http://' + url
+                parsed_url = urlparse(url)
 
             # Scrape current content
             content = self.scraper.scrape_content(url)
-            if not content:
-                raise ValueError(f"Failed to scrape content from {url}")
+            if not content or not content.get('sections'):
+                raise ValueError('Unable to scrape content from the provided URL. Please check the URL and try again.')
 
             # Calculate content hash
             current_content_hash = self._calculate_content_hash(content)
